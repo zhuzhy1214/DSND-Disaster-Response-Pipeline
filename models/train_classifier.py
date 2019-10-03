@@ -1,24 +1,116 @@
 import sys
 
+import pandas as pd
+from sqlalchemy import create_engine
 
-def load_data(database_filepath):
-    pass
+from nltk.tokenize import word_tokenize
+from nltk.stem import WordNetLemmatizer
 
+from sklearn.feature_extraction.text import TfidfTransformer
+
+from sklearn.pipeline import Pipeline, FeatureUnion
+
+from sklearn.model_selection import train_test_split
+
+from sklearn.multioutput import MultiOutputClassifier
+
+from sklearn.base import BaseEstimator, TransformerMixin
+
+from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
+
+from sklearn.ensemble import RandomForestClassifier
+
+from sklearn.tree import DecisionTreeClassifier
+
+
+
+
+import pickle
+
+def load_data(database_filepath = disastermessages.db, table_name = 'processed_data' ):
+    """Loads X and Y and gets category names
+    Args:
+        database_filepath (str): string filepath of the sqlite database
+    Returns:
+        X (pandas dataframe): Feature data, just the messages
+        Y (pandas dataframe): Classification labels
+        category_names (list): List of the category names for classification
+    """
+	
+    engine = create_engine('sqlite:///' + database_filepath)
+	df = pd.read_sql_table( table_name , engine)
+	
+    X = df['message']
+    Y = df.drop(['message', 'genre', 'id', 'original'], axis=1)
+	
+	category_names = list(y.columns)
+	return 
 
 def tokenize(text):
-    pass
+    """Basic tokenizer that changes to lower case, removes punctuation and stopwords then lemmatizes
+    Args:
+        text (string): input message to tokenize
+    Returns:
+        clean_tokens (list): list of cleaned tokens in the message
+    """
+    tokens = word_tokenize(text)
+    lemmatizer = WordNetLemmatizer()
 
+    clean_tokens = []
+    for tok in tokens:
+        clean_tok = lemmatizer.lemmatize(tok).lower().strip()
+        clean_tokens.append(clean_tok)
+
+    return clean_tokens
 
 def build_model():
-    pass
+    """Returns the GridSearchCV object to be used as the model
+    Args:
+        None
+    Returns:
+        cv (scikit-learn GridSearchCV): Grid search model object
+    """
+	pipeline_message = Pipeline([('vect', CountVectorizer(tokenizer=tokenize)),
+                             ('tfidf', TfidfTransformer())
+                            ])
 
 
-def evaluate_model(model, X_test, Y_test, category_names):
-    pass
+	model = KNeighborsClassifier()
+
+	pipeline_2 = Pipeline([('message', pipeline_message), 
+						 ('kNN',model)
+						])
+	
+	
+						
+						
+	
+
+def evaluate_model(model, X_test, y_test, category_names):
+    """Prints multi-output classification results
+    Args:
+        model (pandas dataframe): the scikit-learn fitted model
+        X_text (pandas dataframe): The X test set
+        Y_test (pandas dataframe): the Y test classifications
+        category_names (list): the category names
+    Returns:
+        None
+    """
+	y_pred = model.predict(X_test)
+	for i, col in enumerate(y_test):
+		print(category_names[i])
+		print(classification_report(y_test[:,i], y_pred[:, i]))
 
 
 def save_model(model, model_filepath):
-    pass
+    """dumps the model to the given filepath
+    Args:
+        model (scikit-learn model): The fitted model
+        model_filepath (string): the filepath to save the model to
+    Returns:
+        None
+    """	
+	pickle.dump(model, open(model_filepath, "wb" ) )
 
 
 def main():
