@@ -29,7 +29,7 @@ from sklearn.metrics import classification_report
 
 
 
-def load_data(database_filepath = disastermessages.db, table_name = 'processed_data' ):
+def load_data(database_filepath, table_name = 'processed_data' ):
     """Loads X and Y and gets category names
     Args:
         database_filepath (str): string filepath of the sqlite database
@@ -38,15 +38,15 @@ def load_data(database_filepath = disastermessages.db, table_name = 'processed_d
         Y (pandas dataframe): Classification labels
         category_names (list): List of the category names for classification
     """
-	
+    
     engine = create_engine('sqlite:///' + database_filepath)
-	df = pd.read_sql_table( table_name , engine)
-	
+    df = pd.read_sql_table(table_name , engine)
+    
     X = df['message']
     y = df.drop(['message', 'genre', 'id', 'original'], axis=1)
-	
-	category_names = list(y.columns)
-	return X, y, category_names
+    
+    category_names = list(y.columns)
+    return X, y, category_names
 
 def tokenize(text):
     """Basic tokenizer that changes to lower case, removes punctuation and stopwords then lemmatizes
@@ -72,28 +72,28 @@ def build_model():
     Returns:
         cv (scikit-learn GridSearchCV): Grid search model object
     """
-	pipeline_message = Pipeline([('vect', CountVectorizer(tokenizer=tokenize)),
+    pipeline_message = Pipeline([('vect', CountVectorizer(tokenizer=tokenize)),
                              ('tfidf', TfidfTransformer())
                             ])
 
-	model = KNeighborsClassifier()
+    model = RidgeClassifier()
 
-	pipeline_2 = Pipeline([('message', pipeline_message), 
-						 ('kNN',model)
-						])
-	
-	parameters = {
-		'features__text_pipeline__vect__ngram_range': ((1, 1), (1, 2)),
-		'features__text_pipeline__vect__max_df': (0.5, 0.75, 1.0),
-		'features__text_pipeline__vect__max_features': (None, 5000, 10000),
-		'features__text_pipeline__tfidf__use_idf': (True, False),
-		'clf__estimator__normalize': (True, False),
-		'clf__estimator__alpha': (1.0, 0.8, 0.6)
-	}
-	cv = GridSearchCV(pipeline_2, param_grid=parameters)
+    pipeline_2 = Pipeline([('message', pipeline_message), 
+                         ('clf',model)
+                        ])
+    
+    parameters = {
+        # 'features__text_pipeline__vect__ngram_range': ((1, 1), (1, 2)),
+        # 'features__text_pipeline__vect__max_df': (0.5, 0.75, 1.0),
+        # 'features__text_pipeline__vect__max_features': (None, 5000, 10000),
+        # 'features__text_pipeline__tfidf__use_idf': (True, False),
+        'clf__estimator__normalize': (True, False),
+        'clf__estimator__alpha': (1.0, 0.8, 0.6)
+    }
+    cv = GridSearchCV(pipeline_2, param_grid=parameters)
 
-	return cv
-	
+    return cv
+    
 
 def evaluate_model(model, X_test, y_test, category_names):
     """Prints multi-output classification results
@@ -105,12 +105,12 @@ def evaluate_model(model, X_test, y_test, category_names):
     Returns:
         None
     """
-	#TODO make sure category_names and y_test have the same dimension in labels
-	y_pred = model.predict(X_test)
-	for i, col in enumerate(y_test.T):
-		print(category_names[i])
-		print(classification_report(y_test[:,i], y_pred[:, i]))
-
+    #TODO make sure category_names and y_test have the same dimension in labels
+    y_pred = model.predict(X_test)
+    # for i, col in enumerate(y_test.T):
+    #     print(category_names[i])
+    #     print(classification_report(y_test[:, i], y_pred[:, i], target_names=category_names))
+    print(classification_report(y_test, y_pred, target_names=category_names))
 
 def save_model(model, model_filepath):
     """dumps the model to the given filepath
@@ -119,8 +119,8 @@ def save_model(model, model_filepath):
         model_filepath (string): the filepath to save the model to
     Returns:
         None
-    """	
-	pickle.dump(model, open(model_filepath, "wb" ) )
+    """    
+    pickle.dump(model, open(model_filepath, "wb" ) )
 
 
 def main():

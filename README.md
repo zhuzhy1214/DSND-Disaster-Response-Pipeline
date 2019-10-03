@@ -38,7 +38,6 @@ Files:
 - README.md
 Required packages:
 flask
-joblib
 jupyter # If you want to view the notebooks
 pandas
 plot.ly

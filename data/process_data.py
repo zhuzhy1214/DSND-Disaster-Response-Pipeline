@@ -13,12 +13,12 @@ def load_data(messages_filepath, categories_filepath):
     """
 
     messages = pd.read_csv(messages_filepath)
-	categories = pd.read_csv(categories_filepath)
-	df = messages.merge(categories, on = 'id', how='inner')
+    categories = pd.read_csv(categories_filepath)
+    df = messages.merge(categories, on = 'id', how='inner')
 
-	return df
-	
-	
+    return df
+
+
 def clean_data(df):
     """Cleans the data:
         - drops duplicates
@@ -29,24 +29,23 @@ def clean_data(df):
     Returns:
         df (pandas dataframe): Cleaned dataframe with split categories
     """
-	
-	categories = df['categories'].str.split(';', expand = True)
-	
-	for column in categories:
-		# set each value to be the last character of the string
-		categories[column] = categories[column].str[-1]
-		
-		# convert column from string to numeric
-		categories[column] = categories[column].astype(int)
-	#regulate some of the '2' value to '1'
-	categories['related']  = categories['related'].apply(lambda x: min(x,1))
-	
-	df.drop(columns= ['categories'], inplace=True)
-	df = pd.concat([df, categories], axis = 1)
-	
-	df.drop_duplicates(inplace=True)
-	
-	return df
+
+    categories = df['categories'].str.split(';', expand = True)
+
+    for column in categories:
+        # set each value to be the last character of the string
+        categories[column] = categories[column].str[-1]
+
+        # convert column from string to numeric
+        categories[column] = categories[column].astype(int)
+    #regulate some of the '2' value to '1'
+    categories['related']  = categories['related'].apply(lambda x: min(x,1))
+
+    df.drop(columns= ['categories'], inplace=True)
+    df = pd.concat([df, categories], axis = 1)
+    df.drop_duplicates(inplace=True)
+
+    return df
 
 
 def save_data(df, database_filename, table_name = 'processed_data'):
@@ -58,8 +57,8 @@ def save_data(df, database_filename, table_name = 'processed_data'):
         None
     """
 
-	engine = create_engine('sqlite:///'+database_filename)
-	df.to_sql(table_name, engine, index=False)
+    engine = create_engine('sqlite:///'+database_filename)
+    df.to_sql(table_name, engine, index=False)
 
 def main():
     if len(sys.argv) == 4:
