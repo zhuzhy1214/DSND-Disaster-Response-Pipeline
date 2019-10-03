@@ -107,10 +107,13 @@ def evaluate_model(model, X_test, y_test, category_names):
     """
     #TODO make sure category_names and y_test have the same dimension in labels
     y_pred = model.predict(X_test)
-    # for i, col in enumerate(y_test.T):
-    #     print(category_names[i])
-    #     print(classification_report(y_test[:, i], y_pred[:, i], target_names=category_names))
-    print(classification_report(y_test, y_pred, target_names=category_names))
+    for i in range(y_test.shape[1]):
+        print('category name: {}'.format(category_names[i]))
+        prediction, recall, f1, support = precision_recall_fscore_support(y_test[:, i], y_pred[:, i])
+        print('prediction: {}'.format(prediction))
+        print('recall: {}'.format(recall))
+        print('f1: {}'.format(f1))
+        print('support: {}'.format(support))
 
 def save_model(model, model_filepath):
     """dumps the model to the given filepath
