@@ -1,31 +1,33 @@
 import sys
-
 import pandas as pd
-from sqlalchemy import create_engine
+import numpy as np
 
+#io
+from sqlalchemy import create_engine
+import pickle
+
+#NLP
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
 
-from sklearn.feature_extraction.text import TfidfTransformer
 
+#preprocessing
+from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.pipeline import Pipeline, FeatureUnion
-
+from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.model_selection import train_test_split
 
+
+#model
 from sklearn.multioutput import MultiOutputClassifier
-
-from sklearn.base import BaseEstimator, TransformerMixin
-
-from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
-
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import RidgeClassifier
+from sklearn.model_selection import GridSearchCV
 
-from sklearn.tree import DecisionTreeClassifier
+#metric
+from sklearn.metrics import classification_report
 
 
-
-
-import pickle
 
 def load_data(database_filepath = disastermessages.db, table_name = 'processed_data' ):
     """Loads X and Y and gets category names
@@ -41,10 +43,10 @@ def load_data(database_filepath = disastermessages.db, table_name = 'processed_d
 	df = pd.read_sql_table( table_name , engine)
 	
     X = df['message']
-    Y = df.drop(['message', 'genre', 'id', 'original'], axis=1)
+    y = df.drop(['message', 'genre', 'id', 'original'], axis=1)
 	
 	category_names = list(y.columns)
-	return 
+	return X, y, category_names
 
 def tokenize(text):
     """Basic tokenizer that changes to lower case, removes punctuation and stopwords then lemmatizes
@@ -74,16 +76,23 @@ def build_model():
                              ('tfidf', TfidfTransformer())
                             ])
 
-
 	model = KNeighborsClassifier()
 
 	pipeline_2 = Pipeline([('message', pipeline_message), 
 						 ('kNN',model)
 						])
 	
-	
-						
-						
+	parameters = {
+		'features__text_pipeline__vect__ngram_range': ((1, 1), (1, 2)),
+		'features__text_pipeline__vect__max_df': (0.5, 0.75, 1.0),
+		'features__text_pipeline__vect__max_features': (None, 5000, 10000),
+		'features__text_pipeline__tfidf__use_idf': (True, False),
+		'clf__estimator__normalize': (True, False),
+		'clf__estimator__alpha': (1.0, 0.8, 0.6)
+	}
+	cv = GridSearchCV(pipeline_2, param_grid=parameters)
+
+	return cv
 	
 
 def evaluate_model(model, X_test, y_test, category_names):
@@ -96,8 +105,9 @@ def evaluate_model(model, X_test, y_test, category_names):
     Returns:
         None
     """
+	#TODO make sure category_names and y_test have the same dimension in labels
 	y_pred = model.predict(X_test)
-	for i, col in enumerate(y_test):
+	for i, col in enumerate(y_test.T):
 		print(category_names[i])
 		print(classification_report(y_test[:,i], y_pred[:, i]))
 
@@ -121,16 +131,16 @@ def main():
         X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2)
         
         print('Building model...')
-        model = build_model()
+        cv = build_model()
         
-        print('Training model...')
-        model.fit(X_train, Y_train)
+        print('Training and optimizing model...')
+        cv.fit(X_train, Y_train)
         
         print('Evaluating model...')
-        evaluate_model(model, X_test, Y_test, category_names)
+        evaluate_model(cv, X_test, Y_test, category_names)
 
         print('Saving model...\n    MODEL: {}'.format(model_filepath))
-        save_model(model, model_filepath)
+        save_model(cv.best_estimator_, model_filepath)
 
         print('Trained model saved!')
 
