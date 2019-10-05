@@ -106,14 +106,17 @@ def evaluate_model(model, X_test, y_test, category_names):
         None
     """
     #TODO make sure category_names and y_test have the same dimension in labels
-    y_pred = model.predict(X_test)
+    y_pred_df = pd.DataFrame(model.predict(X_test), columns = category_names)
+    y_test_df = pd.DataFrame(y_test, columns = category_names)
     for i in range(y_test.shape[1]):
         print('category name: {}'.format(category_names[i]))
-        prediction, recall, f1, support = precision_recall_fscore_support(y_test[:, i], y_pred[:, i])
-        print('prediction: {}'.format(prediction))
-        print('recall: {}'.format(recall))
-        print('f1: {}'.format(f1))
-        print('support: {}'.format(support))
+        print(classification_report(y_test_df.iloc[:,i], y_pred_df.iloc[:,i]))
+
+        # prediction, recall, f1, support = precision_recall_fscore_support(y_test[:, i].flatten(), y_pred[:, i].flatten())
+        # print('prediction: {}'.format(prediction))
+        # print('recall: {}'.format(recall))
+        # print('f1: {}'.format(f1))
+        # print('support: {}'.format(support))
 
 def save_model(model, model_filepath):
     """dumps the model to the given filepath
